@@ -7,6 +7,14 @@
     "url": "https://www.tianweb.dev"
   },
   "private": true,
+  "homepage": "https://github.com/tianbuyung/birthday-reminder-service#readme",
+  "bugs": {
+    "url": "https://github.com/tianbuyung/birthday-reminder-service/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tianbuyung/birthday-reminder-service.git"
+  },
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",

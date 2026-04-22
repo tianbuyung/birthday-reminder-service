@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { DateTime } from 'luxon';
 
 import { computeNextBirthday9AM } from './timezone.util';
@@ -101,20 +102,52 @@ describe('computeNextBirthday9AM', () => {
     expect(result.hour).toBe(9);
   });
 
-  it('handles Feb 29 birthdays — lands on a valid date in non-leap years', () => {
-    // Jan 1 2025 — non-leap year
-    mockNow('2025-01-01T00:00:00Z');
+  it('schedules Feb 28 in a non-leap year for Feb 29 birthdays', () => {
+    // Luxon overflows day=29 → Mar 1 via JS Date arithmetic in non-leap years;
+    // resolveLeapDay() guards against this by clamping to Feb 28.
+    mockNow('2025-01-01T00:00:00Z'); // 2025 is not a leap year
     const leapDayBirthday = new Date('1992-02-29T00:00:00Z');
 
     const result = DateTime.fromJSDate(
       computeNextBirthday9AM(leapDayBirthday, 'UTC'),
-      {
-        zone: 'UTC',
-      },
+      { zone: 'UTC' },
     );
 
     expect(result.year).toBe(2025);
+    expect(result.month).toBe(2);
+    expect(result.day).toBe(28);
     expect(result.hour).toBe(9);
     expect(result.isValid).toBe(true);
+  });
+
+  it('schedules Feb 29 in a leap year for Feb 29 birthdays', () => {
+    mockNow('2028-01-01T00:00:00Z'); // 2028 is a leap year
+
+    const result = DateTime.fromJSDate(
+      computeNextBirthday9AM(new Date('1992-02-29T00:00:00Z'), 'UTC'),
+      { zone: 'UTC' },
+    );
+
+    expect(result.year).toBe(2028);
+    expect(result.month).toBe(2);
+    expect(result.day).toBe(29);
+    expect(result.hour).toBe(9);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('throws BadRequestException for an invalid timezone', () => {
+    expect(() => computeNextBirthday9AM(BIRTHDAY, 'Not/ATimezone')).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('advances to next year when sub-second offset places now past 9 AM (millisecond boundary)', () => {
+    // now = 09:00:00.500 Jakarta — technically past the 9 AM window by 500ms.
+    // startOf('second') truncates to 09:00:00.000 so candidate === now, and <= advances to next year.
+    mockNow('2025-04-25T02:00:00.500Z'); // 09:00:00.500 Jakarta
+
+    expect(computeNextBirthday9AM(BIRTHDAY, TZ).getTime()).toBe(
+      at9AM(2026, TZ).getTime(),
+    );
   });
 });

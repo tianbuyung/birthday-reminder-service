@@ -213,9 +213,9 @@ pnpm run test:cov
 | Statements | 100%     |
 | Functions  | 100%     |
 | Lines      | 100%     |
-| Branches   | 80.9%    |
+| Branches   | 82.2%    |
 
-56 tests across 13 suites — all passing.
+59 tests across 13 suites — all passing.
 
 ---
 
@@ -235,7 +235,7 @@ After firing, the job **reschedules itself** for the following year without a DB
 
 ### Timezone math: Luxon
 
-`computeNextBirthday9AM` builds the candidate date in the user's local zone, then advances by one year if the time has already passed. Luxon handles leap-day birthdays (Feb 29) on non-leap years by landing on Feb 28.
+`computeNextBirthday9AM` builds the candidate date in the user's local zone, then advances by one year if the time has already passed. DST transitions are transparent — Luxon resolves 9 AM to the correct UTC offset for the exact date. Feb 29 birthdays are handled explicitly via `resolveLeapDay()`: Luxon overflows `day=29` to March 1 in non-leap years via JS `Date` arithmetic, so we check `isInLeapYear` and clamp to Feb 28 ourselves. `now` is truncated to the second before the boundary check to eliminate sub-millisecond jitter.
 
 ### Email simulation
 
